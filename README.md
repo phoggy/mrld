@@ -12,13 +12,15 @@ A simplified form suitable for display during input is reported by default, foll
 $ echo "my password" | emrld
 very weak, 11 seconds to crack
 ```
-The adjective is *colored* according to the score by default:
-- < 2 = red
+The adjective is *colored* according to the score:
+- 0 = red
+- 1 = red
 - 2 = yellow
 - 3 = blue
-- 4 = green (mrld)
+- 4 = green (_mrld_)
                                                  
-```bash
+This can be disabled with the `--no-color` option:
+```
 Options:
   -p, --pretty      split output on multiple lines
   -s, --score       add score as an integer from 0 to 4
@@ -28,9 +30,8 @@ Options:
   --version         output version information and exit
   --help            display usage information
 ```
-                               
 
-The `--verbose` option can be used to report all estimate data as JSON, e.g.
+Here's an example of the prettified verbose output:
 
 ```bash
 $ echo "my password" | emrld --verbose --pretty
