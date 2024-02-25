@@ -1,11 +1,12 @@
-# Password Strength Estimate
+# Password Strength Estimation
 
 A command-line tool that uses [zxcvbn](https://github.com/shssoichiro/zxcvbn-rs) to report the estimated strength of a 
-password/phrase, with the goal of encouraging or enforcing use of strong ones. 
+password/phrase, with the goal of encouraging and/or enforcing use of strong ones. 
 
 A simplified form suitable for display during input is reported by default, following the [bitwarden](https://bitwarden.com/password-strength/) model:
 - map the 0-4 score value to an adjective: < 2 = `very weak`, 2 =`weak`, 3 =`good`, 4 =`strong`
-- use only the 10k/s 'offline attack, slow hash, many cores' crack time.
+- color the adjective to indicate desirability
+- use only the 10k/s "offline attack, slow hash, many cores" crack time
 
 
 ```bash
