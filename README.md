@@ -3,7 +3,7 @@
 A command-line tool that uses [zxcvbn](https://github.com/shssoichiro/zxcvbn-rs) to report the estimated strength of a 
 password/phrase, with the goal of encouraging and/or enforcing use of strong ones. 
 
-A simplified form&mdash;suitable for display during input&mdash;is reported by default, following the [bitwarden](https://bitwarden.com/password-strength/) model:
+A simplified form is reported by default, following the [bitwarden](https://bitwarden.com/password-strength/) model:
 - map the 0-4 score value to an adjective: 
   - 0,1 &rarr; "very weak", 2 &rarr; "weak", 3 &rarr; "good", 4 &rarr; "strong"
 - color the adjective to indicate desirability: 
