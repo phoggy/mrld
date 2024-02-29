@@ -11,15 +11,11 @@ const VERSION: &'static str = "0.1.0";
 #[derive(FromArgs)]
 /// A password/phrase strength estimator that, by default, outputs a simplified format
 /// suitable for displaying alongside password/phrase input. The password/phrase is read
-/// from stdin.
+/// from stdin and must terminate with a newline character.
 struct Args {
     /// split output on multiple lines
     #[argh(switch, long = "pretty", short = 'p')]
     multiline: bool,
-
-    /// add score as an integer from 0 to 4
-    #[argh(switch, long = "score", short = 's')]
-    score: bool,
 
     /// do not use color
     #[argh(switch, long = "no-color", short = 'n')]
@@ -92,51 +88,51 @@ fn print_summary(args: Args, estimate: Entropy) {
     let crack_time = estimate.crack_times().offline_slow_hashing_1e4_per_second();
     let score = estimate.score();
     let mut separator = ", ";
-    let mut prefix = String::new();
-    let mut suffix = " to crack";
+    let mut description = " to crack";
+    let mut tally = format!("({score}/4)");
     let color;
     let name;
-    let label;
+    let adjective;
 
     match score {
         0 | 1 => {
             color = Red.normal();
-            name = "very weak"
+            name = "very weak";
         }
         2 => {
             color = Yellow.normal();
-            name = "weak"
+            name = "weak";
         }
         3 => {
             color = Blue.normal();
-            name = "good"
+            name = "good";
         }
         4 => {
             color = Green.bold();
-            name = "strong"
+            name = "strong";
         }
         _ => panic!("unknown score value"),
     };
 
     if args.plain {
-        label = name.to_string();
+        adjective = name.to_string();
     } else {
-        label = color.paint(name).to_string();
+        adjective = color.paint(name).to_string();
     }
     if args.multiline {
-        separator = "\n"
+        separator = "\n";
+        tally = format!("\n{tally}");
+    } else {
+        tally = format!(" {tally}");
     }
     if args.terse {
         if !args.multiline {
-            separator = ","
+            separator = ",";
         }
-        suffix = ""
-    }
-    if args.score {
-        prefix = format!("{score}{separator}");
+        description = "";
     }
 
-    println!("{prefix}{label}{separator}{crack_time}{suffix}");
+    println!("{adjective}{separator}{crack_time}{description}{tally}");
 }
 
 fn version() -> Result<(), String> {
