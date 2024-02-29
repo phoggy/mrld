@@ -13,25 +13,25 @@ A simplified form&mdash;suitable for display during input&mdash;is reported by d
 Options
 
 ```
-  -p, --pretty      split output on multiple lines
+  -m, --multi-line  split output on multiple lines
   -n, --no-color    do not use color
   -t, --terse       minimize output
   -v, --verbose     output entire estimate as JSON
   --version         output version information
   --help            display usage information
-```
+  ```
     
 Example (adjective is not colored here)
 
 ```bash
 $ echo "my password" | mrld
-very weak, 11 seconds to crack (0/4)
+very weak (0/4) - 11 seconds to crack
 ```
 
-Here's an example of verbose, prettified output:
+Here's an example of verbose, multi-line output:
 
 ```bash
-$ echo "my password" | mrld --verbose --pretty
+$ echo "my password" | mrld --verbose --multi-line
 {
   "guesses": 110000,
   "guesses_log10": 5.041392685158225,
@@ -84,3 +84,8 @@ $ echo "my password" | mrld --verbose --pretty
 ## Installation
 
 Check this project's GitHub Releases page for binaries.
+
+## Developers
+
+This project uses [cargo-dist](https://opensource.axo.dev/cargo-dist/) to create releases. 
+

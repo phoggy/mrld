@@ -14,7 +14,7 @@ const VERSION: &'static str = "0.1.0";
 /// from stdin and must terminate with a newline character.
 struct Args {
     /// split output on multiple lines
-    #[argh(switch, long = "pretty", short = 'p')]
+    #[argh(switch, long = "multi-line", short = 'm')]
     multiline: bool,
 
     /// do not use color
@@ -87,7 +87,6 @@ fn print_verbose(args: Args, estimate: Entropy) {
 fn print_summary(args: Args, estimate: Entropy) {
     let crack_time = estimate.crack_times().offline_slow_hashing_1e4_per_second();
     let score = estimate.score();
-    let mut separator = ", ";
     let mut description = " to crack";
     let mut tally = format!("({score}/4)");
     let color;
@@ -119,20 +118,22 @@ fn print_summary(args: Args, estimate: Entropy) {
     } else {
         adjective = color.paint(name).to_string();
     }
+
     if args.multiline {
-        separator = "\n";
-        tally = format!("\n{tally}");
-    } else {
-        tally = format!(" {tally}");
-    }
-    if args.terse {
-        if !args.multiline {
-            separator = ",";
+        if args.terse {
+            tally = format!("\n{score}\n");
+            description = "";
+        } else {
+            tally = format!("\n{tally}\n");
         }
+    } else if args.terse {
+        tally = format!(",{score},");
         description = "";
+    } else {
+        tally = format!(" {tally}, ");
     }
 
-    println!("{adjective}{separator}{crack_time}{description}{tally}");
+    println!("{adjective}{tally}{crack_time}{description}");
 }
 
 fn version() -> Result<(), String> {
