@@ -11,10 +11,9 @@ A simplified form&mdash;suitable for display during input&mdash;is reported by d
     
 Example 
 
-<pre>
+
 $ <code style="color: #79c0ff">echo</code> <code style="color: #79c0ff">"my password"</code> <code style="color: #ff7b72">|</code> mrld
 <code style="color: red">very weak</code>, 11 seconds to crack (0/4)
-</pre>
 
 Options
 
