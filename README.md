@@ -4,17 +4,9 @@ A command-line tool that uses [zxcvbn](https://github.com/shssoichiro/zxcvbn-rs)
 password/phrase, with the goal of encouraging and/or enforcing use of strong ones. 
 
 A simplified form&mdash;suitable for display during input&mdash;is reported by default, following the [bitwarden](https://bitwarden.com/password-strength/) model:
-- map the 0-4 score value to an adjective: < 2 = `very weak`, 2 =`weak`, 3 =`good`, 4 =`strong`
-- color the adjective to indicate desirability $${\color{red}very weak}$$ <code style="color: yellow">weak</code>
-  <code style="color: #79c0ff">good</code><code style="color: lime">strong</code>
+- map the 0-4 score value to an adjective: < 2 &rarr; "very weak", 2 &rarr; "weak", 3 &rarr; "good", 4 &rarr; "strong"
+- color the adjective to indicate desirability: "very weak" &rarr; red, "weak" &rarr; yellow, "good" &rarr; blue, "strong" &rarr; green (_"mrld"_)
 - use only the 10k/s "offline attack, slow hash, many cores" crack time
-    
-Example 
-
-<pre>
-$ <code style="color: #79c0ff">echo</code> <code style="color: #79c0ff">"my password"</code> <code style="color: #ff7b72">|</code> mrld
-<code style="color: red">very weak</code>, 11 seconds to crack (0/4)
-</pre>
 
 Options
 
@@ -27,9 +19,15 @@ Options:
   --version         output version information and exit
   --help            display usage information
 ```
+    
+Example (color does not show here)
 
+```bash
+$ echo "my password" | mrld
+very weak, 11 seconds to crack (0/4)
+```
 
-Here's an example of the prettified verbose output:
+Here's an example of verbose, prettified output:
 
 ```bash
 $ echo "my password" | mrld --verbose --pretty
