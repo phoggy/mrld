@@ -10,7 +10,7 @@ A simplified form suitable for display during input is reported by default, foll
 
 
 ```bash
-$ echo "my password" | emrld
+$ echo "my password" | mrld
 very weak, 11 seconds to crack
 ```
 The adjective is *colored* according to the score:
@@ -35,7 +35,7 @@ Options:
 Here's an example of the prettified verbose output:
 
 ```bash
-$ echo "my password" | emrld --verbose --pretty
+$ echo "my password" | mrld --verbose --pretty
 {
   "guesses": 110000,
   "guesses_log10": 5.041392685158225,

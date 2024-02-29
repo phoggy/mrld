@@ -5,7 +5,7 @@ use std::io::{self, BufRead};
 use serde_json::json;
 use zxcvbn::{zxcvbn, Entropy};
 
-const NAME: &'static str = "emrld";
+const NAME: &'static str = "mrld";
 const VERSION: &'static str = "0.1.0";
 
 #[derive(FromArgs)]
@@ -55,7 +55,7 @@ fn estimate(args: Args) -> Result<(), String> {
             print(args, estimate);
             Ok(())
         }
-        Err(e) => Err(format!("Error estimating strength: {}", e)),
+        Err(e) => Err(format!("Error estimating strength: {e}")),
     };
 }
 
@@ -133,13 +133,13 @@ fn print_summary(args: Args, estimate: Entropy) {
         suffix = ""
     }
     if args.score {
-        prefix = format!("{}{}", score, separator);
+        prefix = format!("{score}{separator}");
     }
 
-    println!("{}{}{}{}{}", prefix, label, separator, crack_time, suffix);
+    println!("{prefix}{label}{separator}{crack_time}{suffix}");
 }
 
 fn version() -> Result<(), String> {
-    println!("{} {}", NAME, VERSION);
+    println!("{NAME} {VERSION}");
     Ok(())
 }

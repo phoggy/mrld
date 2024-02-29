@@ -1,8 +1,8 @@
 [package]
-name = "emrld"
+name = "mrld"
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/phoggy/emrld"
+repository = "https://github.com/phoggy/mrld"
 
 [dependencies]
 argh = "0.1.12"
