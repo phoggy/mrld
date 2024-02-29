@@ -25,11 +25,11 @@ struct Args {
     #[argh(switch, long = "terse", short = 't')]
     terse: bool,
 
-    /// output complete estimate as JSON
+    /// output entire estimate as JSON
     #[argh(switch, long = "verbose", short = 'v')]
     verbose: bool,
 
-    /// output version information and exit
+    /// output version information
     #[argh(switch, long = "version")]
     version: bool,
 }

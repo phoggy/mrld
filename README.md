@@ -4,23 +4,22 @@ A command-line tool that uses [zxcvbn](https://github.com/shssoichiro/zxcvbn-rs)
 password/phrase, with the goal of encouraging and/or enforcing use of strong ones. 
 
 A simplified form&mdash;suitable for display during input&mdash;is reported by default, following the [bitwarden](https://bitwarden.com/password-strength/) model:
-- map the 0-4 score value to an adjective: < 2 &rarr; "very weak", 2 &rarr; "weak", 3 &rarr; "good", 4 &rarr; "strong"
+- map the 0-4 score value to an adjective: 0,1 &rarr; "very weak", 2 &rarr; "weak", 3 &rarr; "good", 4 &rarr; "strong"
 - color the adjective to indicate desirability: "very weak" &rarr; red, "weak" &rarr; yellow, "good" &rarr; blue, "strong" &rarr; green (_"mrld"_)
 - use only the 10k/s "offline attack, slow hash, many cores" crack time
 
 Options
 
 ```
-Options:
   -p, --pretty      split output on multiple lines
   -n, --no-color    do not use color
   -t, --terse       minimize output
-  -v, --verbose     output complete estimate as JSON
-  --version         output version information and exit
+  -v, --verbose     output entire estimate as JSON
+  --version         output version information
   --help            display usage information
 ```
     
-Example (color does not show here)
+Example (adjective is not colored here)
 
 ```bash
 $ echo "my password" | mrld
