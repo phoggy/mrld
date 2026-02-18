@@ -1,6 +1,5 @@
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
 use argh::FromArgs;
-use serde_json;
 use std::io::{self, BufRead};
 use serde_json::json;
 use zxcvbn::{zxcvbn, Entropy};
