@@ -2,3 +2,10 @@
 
 # Nix
 result
+
+# IntelliJ Idea
+.idea/
+*.iws
+*.ipr
+*.iml
+
