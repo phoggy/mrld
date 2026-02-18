@@ -2,7 +2,7 @@ use ansi_term::Colour::{Blue, Green, Red, Yellow};
 use argh::FromArgs;
 use std::io::{self, BufRead};
 use serde_json::json;
-use zxcvbn::{zxcvbn, Entropy};
+use zxcvbn::{zxcvbn, Entropy, Score};
 
 const NAME: &str = "mrld";
 const VERSION: &str = "0.1.0";
@@ -45,13 +45,9 @@ fn main() -> Result<(), String> {
 fn estimate(args: Args) -> Result<(), String> {
     let stdin = io::stdin();
     let pass = stdin.lock().lines().next().unwrap().unwrap();
-    match zxcvbn(&pass, &[]) {
-        Ok(estimate) => {
-            print(args, estimate);
-            Ok(())
-        }
-        Err(e) => Err(format!("Error estimating strength: {e}")),
-    }
+    let estimate = zxcvbn(&pass, &[]);
+    print(args, estimate);
+    Ok(())
 }
 
 fn print(args: Args, estimate: Entropy) {
@@ -93,19 +89,19 @@ fn print_summary(args: Args, estimate: Entropy) {
     let adjective;
 
     match score {
-        0 | 1 => {
+        Score::Zero | Score::One => {
             color = Red.normal();
             name = "very weak";
         }
-        2 => {
+        Score::Two => {
             color = Yellow.normal();
             name = "weak";
         }
-        3 => {
+        Score::Three => {
             color = Blue.normal();
             name = "good";
         }
-        4 => {
+        Score::Four => {
             color = Green.bold();
             name = "strong";
         }
