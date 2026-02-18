@@ -5,7 +5,7 @@ use serde_json::json;
 use zxcvbn::{zxcvbn, Entropy, Score};
 
 const NAME: &str = "mrld";
-const VERSION: &str = "0.1.0";
+const VERSION: &str = "0.1.1";
 
 #[derive(FromArgs)]
 /// A password/phrase strength estimator that, by default, outputs a simplified format
