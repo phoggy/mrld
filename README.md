@@ -81,9 +81,48 @@ $ echo "my password" | mrld --verbose --multi-line
 }
 ```
 
+## Prerequisites
+
+Requires [Nix](https://nixos.org/).
+
+**Mac with Apple silicon:** Download and run the [Determinate Nix installer](https://dtr.mn/determinate-nix).
+
+**Mac x86:**
+
+```bash
+curl -L https://nixos.org/nix/install | sh
+```
+
+**Linux:**
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+All installers create a `/nix` volume and take a few minutes to complete. Answer yes to any
+prompts and allow any system dialogs that pop up. Once complete, open a new terminal before
+continuing.
+
+If you used the Mac x86 installer, enable flakes:
+
+```bash
+mkdir -p ~/.config/nix
+echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+```
+
 ## Installation
 
-Check this project's GitHub Releases page for binaries.
+```bash
+nix profile add github:phoggy/mrld
+```
+
+To run without installing:
+
+```bash
+nix run github:phoggy/mrld
+```
+
+Or check this project's GitHub Releases page for binaries.
 
 ## Developers
 
