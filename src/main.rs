@@ -4,8 +4,8 @@ use std::io::{self, BufRead};
 use serde_json::json;
 use zxcvbn::{zxcvbn, Entropy};
 
-const NAME: &'static str = "mrld";
-const VERSION: &'static str = "0.1.0";
+const NAME: &str = "mrld";
+const VERSION: &str = "0.1.0";
 
 #[derive(FromArgs)]
 /// A password/phrase strength estimator that, by default, outputs a simplified format
@@ -35,23 +35,23 @@ struct Args {
 
 fn main() -> Result<(), String> {
     let args: Args = argh::from_env();
-    return if args.version {
+    if args.version {
         version()
     } else {
         estimate(args)
-    };
+    }
 }
 
 fn estimate(args: Args) -> Result<(), String> {
     let stdin = io::stdin();
     let pass = stdin.lock().lines().next().unwrap().unwrap();
-    return match zxcvbn(&pass, &[]) {
+    match zxcvbn(&pass, &[]) {
         Ok(estimate) => {
             print(args, estimate);
             Ok(())
         }
         Err(e) => Err(format!("Error estimating strength: {e}")),
-    };
+    }
 }
 
 fn print(args: Args, estimate: Entropy) {
