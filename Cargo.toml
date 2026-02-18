@@ -35,5 +35,7 @@ github-custom-runners = { aarch64-apple-darwin = "macos-latest", x86_64-apple-da
 publish-jobs = ["homebrew"]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
+# Allow manually-patched workflow (runners updated from deprecated to current)
+allow-dirty = ["ci"]
 
 # cargo-dist
