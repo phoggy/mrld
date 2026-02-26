@@ -17,7 +17,7 @@
             pname = "mrld";
             version = "0.1.0";
             src = self;
-            cargoHash = "sha256-8IKe8Ps//m3yvG5EQjA/DadZ9mdmuoW7MA6DgMMLrdU=";
+            cargoHash = "sha256-Rrww2WRf7pslCYPaRbVnEIyVuGYuuOYvJMZZh752IEk=";
             meta = with pkgs.lib; {
               description = "Password strength evaluator";
               homepage = "https://github.com/phoggy/mrld";
