@@ -8,7 +8,7 @@ use zxcvbn::time_estimates::CrackTimeSeconds;
 use zxcvbn::{zxcvbn, Entropy};
 
 const NAME: &str = "mrld";
-const VERSION: &str = "0.1.1";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(FromArgs)]
 /// A password/phrase strength estimator that, by default, outputs a simplified format
@@ -124,7 +124,7 @@ fn print_summary(args: Args, estimate: Entropy) {
         estimate.crack_times().offline_slow_hashing_1e4_per_second()
     };
     let (level, name, color) = describe(crack_time);
-    let mut description = " to crack";
+    let mut description = " to crack (determined attacker)";
     let mut tally = format!("({level}/4)");
     let adjective;
 
