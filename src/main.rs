@@ -81,6 +81,15 @@ fn print_verbose(args: Args, estimate: Entropy) {
     });
     *json.get_mut("crack_times").unwrap() = update;
 
+    // Add the same crack-time-based level/description used in the default summary output
+    // (based on -a/--age), so callers parsing --verbose don't have to duplicate describe()'s
+    // thresholds themselves.
+
+    let (level, description, _color) = describe(selected_crack_time(&args, &estimate));
+    let obj = json.as_object_mut().unwrap();
+    obj.insert("level".to_string(), json!(level));
+    obj.insert("description".to_string(), json!(description));
+
     if args.multiline {
         println!("{}", serde_json::to_string_pretty(&json).unwrap());
     } else {
@@ -117,12 +126,19 @@ fn describe(crack_time: CrackTimeSeconds) -> (u8, &'static str, Style) {
     }
 }
 
-fn print_summary(args: Args, estimate: Entropy) {
-    let crack_time = if args.age {
+/// The crack-time scenario used for the summary label/level and the default crack-time
+/// display: Age's scrypt work factor when -a/--age is given, otherwise a generic offline
+/// slow-hashing assumption.
+fn selected_crack_time(args: &Args, estimate: &Entropy) -> CrackTimeSeconds {
+    if args.age {
         age_scrypt_crack_time(estimate.guesses())
     } else {
         estimate.crack_times().offline_slow_hashing_1e4_per_second()
-    };
+    }
+}
+
+fn print_summary(args: Args, estimate: Entropy) {
+    let crack_time = selected_crack_time(&args, &estimate);
     let (level, name, color) = describe(crack_time);
     let mut description = " to crack (determined attacker)";
     let mut tally = format!("({level}/4)");
