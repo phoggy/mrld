@@ -77,7 +77,10 @@ fn print_verbose(args: Args, estimate: Entropy) {
         "10_per_second": times.online_no_throttling_10_per_second().to_string(),
         "10k_per_second": times.offline_slow_hashing_1e4_per_second().to_string(),
         "10B_per_second": times.offline_fast_hashing_1e10_per_second().to_string(),
-        "age_scrypt_1_per_second": age_scrypt_crack_time(estimate.guesses()).to_string()
+        "age_scrypt_1_core": age_scrypt_crack_time(estimate.guesses(), 1).to_string(),
+        "age_scrypt_32_cores": age_scrypt_crack_time(estimate.guesses(), 32).to_string(),
+        "age_scrypt_128_cores": age_scrypt_crack_time(estimate.guesses(), 128).to_string(),
+        "age_scrypt_1024_cores": age_scrypt_crack_time(estimate.guesses(), 1024).to_string()
     });
     *json.get_mut("crack_times").unwrap() = update;
 
@@ -99,10 +102,13 @@ fn print_verbose(args: Args, estimate: Entropy) {
 
 /// Age's default scrypt work factor (log2(N)=18) is calibrated to take about one
 /// second per guess on a single core: https://github.com/FiloSottile/age/blob/main/scrypt.go
-const AGE_SCRYPT_GUESSES_PER_SECOND: f64 = 1.0;
+/// Scrypt's memory-hardness (~256MB per guess at this work factor) makes parallelizing
+/// expensive relative to a fast hash, but not impossible for a well-resourced attacker
+/// willing to spend on RAM - hence the multiple core-count scenarios.
+const AGE_SCRYPT_GUESSES_PER_SECOND_PER_CORE: f64 = 1.0;
 
-fn age_scrypt_crack_time(guesses: u64) -> CrackTimeSeconds {
-    CrackTimeSeconds::Float(guesses as f64 / AGE_SCRYPT_GUESSES_PER_SECOND)
+fn age_scrypt_crack_time(guesses: u64, cores: u64) -> CrackTimeSeconds {
+    CrackTimeSeconds::Float(guesses as f64 / (AGE_SCRYPT_GUESSES_PER_SECOND_PER_CORE * cores as f64))
 }
 
 /// Rates a crack-time estimate on a 1-4 scale, rather than using the raw zxcvbn score,
@@ -131,7 +137,7 @@ fn describe(crack_time: CrackTimeSeconds) -> (u8, &'static str, Style) {
 /// slow-hashing assumption.
 fn selected_crack_time(args: &Args, estimate: &Entropy) -> CrackTimeSeconds {
     if args.age {
-        age_scrypt_crack_time(estimate.guesses())
+        age_scrypt_crack_time(estimate.guesses(), 1)
     } else {
         estimate.crack_times().offline_slow_hashing_1e4_per_second()
     }
