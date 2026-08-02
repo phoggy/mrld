@@ -347,14 +347,24 @@ struct ReportEntry {
 /// 'casual' requested for file, whose weakest tier already rate-classifies as 'motivated'):
 /// primary_scenario picks the weakest scenario, which would otherwise be silently merged into
 /// a stronger same-level neighbor's row and vanish from the report entirely.
+///
+/// If the chosen primary scenario has an actor_override, every other override scenario in the
+/// list is marked primary too. Overrides exist precisely because rate alone doesn't distinguish
+/// them - account's offline pair takes roughly the same hardware, and what actually determines
+/// which applies is the account's own (unknown to us) hash choice. Once a threat level reaches
+/// into that hash-choice-dependent territory at all, either scenario may be the real one.
 fn build_report(guesses: u64, scenarios: &[Scenario], primary_key: &str) -> Vec<ReportEntry> {
+    let primary_has_override =
+        scenarios.iter().find(|s| s.key == primary_key).is_some_and(|s| s.actor_override.is_some());
+
     let mut entries: Vec<ReportEntry> = Vec::new();
     let mut last_level: Option<ThreatLevel> = None;
     let mut last_is_primary = false;
 
     for scenario in scenarios {
         let time = format_crack_time(seconds_for(guesses, scenario.guesses_per_hour));
-        let is_primary = scenario.key == primary_key;
+        let is_primary = scenario.key == primary_key
+            || (primary_has_override && scenario.actor_override.is_some());
 
         if let Some(actor) = scenario.actor_override {
             entries.push(ReportEntry { time, actor: actor.to_string(), detail: scenario.detail, primary: is_primary });
