@@ -443,35 +443,26 @@ fn print_summary(args: Args, estimate: Entropy) {
     let seconds = seconds_for(guesses, scenario.guesses_per_hour);
     let crack_time = format_crack_time(seconds);
     let (level, name, color) = describe(seconds);
-    let applied = ThreatLevel::from_rate(scenario.guesses_per_hour).label();
-    let mut description = format!(" to crack ({applied} attacker)");
-    let mut tally = format!("({level}/4)");
-    let mut prefix = format!("{}/{}: ", args.use_case.label(), args.threat_level.label());
-    let adjective;
+    let adjective = if args.plain { name.to_string() } else { color.paint(name).to_string() };
 
-    if args.plain {
-        adjective = name.to_string();
-    } else {
-        adjective = color.paint(name).to_string();
+    // Terse mode is meant for parsing/embedding, not reading, so it stays plain data with no
+    // prose - unaffected by the wording below.
+    if args.terse {
+        if args.multiline {
+            println!("{adjective}\n({level}/4)\n{crack_time}");
+        } else {
+            println!("{adjective},{level},{crack_time}");
+        }
+        return;
     }
+
+    let context = format!("against {} attacker on {}", args.threat_level.label(), args.use_case.label());
 
     if args.multiline {
-        if args.terse {
-            tally = format!("\n{level}\n");
-            description = String::new();
-            prefix = String::new();
-        } else {
-            tally = format!("\n{tally}\n");
-        }
-    } else if args.terse {
-        tally = format!(",{level},");
-        description = String::new();
-        prefix = String::new();
+        println!("{adjective} ({level}/4)\n{context}\n{crack_time} to crack");
     } else {
-        tally = format!(" {tally}, ");
+        println!("{adjective} ({level}/4) {context}, {crack_time} to crack");
     }
-
-    println!("{prefix}{adjective}{tally}{crack_time}{description}");
 }
 
 fn version() -> Result<(), String> {
