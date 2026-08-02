@@ -276,10 +276,6 @@ fn seconds_for(guesses: u64, guesses_per_hour: u64) -> u64 {
     seconds.min(u64::MAX as u128) as u64
 }
 
-fn primary_seconds(use_case: UseCase, threat_level: ThreatLevel, guesses: u64) -> u64 {
-    seconds_for(guesses, primary_scenario(use_case, threat_level).guesses_per_hour)
-}
-
 /// Formats a duration in seconds as a human-readable crack time. Matches zxcvbn's own
 /// CrackTimeSeconds Display exactly for everything under ~1000 years (same MINUTE/HOUR/DAY/
 /// MONTH/YEAR constants and pluralization), but - unlike zxcvbn, which collapses everything
@@ -332,6 +328,10 @@ struct ReportEntry {
     time: String,
     actor: String,
     detail: &'static str,
+    /// True for the single entry representing primary_scenario's pick for the requested
+    /// threat level - the one actually driving the summary's level/description/crack-time -
+    /// so callers can highlight it instead of guessing which row matches by comparing labels.
+    primary: bool,
 }
 
 /// Builds the use-case-aware crack-time report: one entry per scenario, with consecutive
@@ -340,27 +340,38 @@ struct ReportEntry {
 /// same threat-level bucket under ThreatLevel::from_rate's thresholds - don't repeat the same
 /// story twice. Scenarios with an actor_override are never collapsed: each already tells a
 /// distinct, hash-choice-driven story regardless of rate.
-fn build_report(guesses: u64, scenarios: &[Scenario]) -> Vec<ReportEntry> {
+///
+/// The entry for `primary_key` (primary_scenario's pick) is never collapsed away, even when a
+/// later same-level scenario would otherwise overwrite it - this matters for the fallback case
+/// where the requested threat level is below every scenario's own rate-derived level (e.g.
+/// 'casual' requested for file, whose weakest tier already rate-classifies as 'motivated'):
+/// primary_scenario picks the weakest scenario, which would otherwise be silently merged into
+/// a stronger same-level neighbor's row and vanish from the report entirely.
+fn build_report(guesses: u64, scenarios: &[Scenario], primary_key: &str) -> Vec<ReportEntry> {
     let mut entries: Vec<ReportEntry> = Vec::new();
     let mut last_level: Option<ThreatLevel> = None;
+    let mut last_is_primary = false;
 
     for scenario in scenarios {
         let time = format_crack_time(seconds_for(guesses, scenario.guesses_per_hour));
+        let is_primary = scenario.key == primary_key;
 
         if let Some(actor) = scenario.actor_override {
-            entries.push(ReportEntry { time, actor: actor.to_string(), detail: scenario.detail });
+            entries.push(ReportEntry { time, actor: actor.to_string(), detail: scenario.detail, primary: is_primary });
             last_level = None;
+            last_is_primary = is_primary;
             continue;
         }
 
         let threat_level = ThreatLevel::from_rate(scenario.guesses_per_hour);
         let actor = threat_level.actor();
-        if last_level == Some(threat_level) {
-            *entries.last_mut().unwrap() = ReportEntry { time, actor, detail: scenario.detail };
+        if last_level == Some(threat_level) && !last_is_primary {
+            *entries.last_mut().unwrap() = ReportEntry { time, actor, detail: scenario.detail, primary: is_primary };
         } else {
-            entries.push(ReportEntry { time, actor, detail: scenario.detail });
-            last_level = Some(threat_level);
+            entries.push(ReportEntry { time, actor, detail: scenario.detail, primary: is_primary });
         }
+        last_level = Some(threat_level);
+        last_is_primary = is_primary;
     }
 
     entries
@@ -388,8 +399,9 @@ fn print_verbose(args: Args, estimate: Entropy) {
     // verdict actually means (e.g. "good" against a casual attacker is a different claim than
     // "good" against a state-level one).
 
-    let (level, description, _color) = describe(primary_seconds(args.use_case, args.threat_level, guesses));
-    let report = build_report(guesses, scenarios_for(args.use_case));
+    let primary = primary_scenario(args.use_case, args.threat_level);
+    let (level, description, _color) = describe(seconds_for(guesses, primary.guesses_per_hour));
+    let report = build_report(guesses, scenarios_for(args.use_case), primary.key);
 
     let obj = json.as_object_mut().unwrap();
     obj.insert("use_case".to_string(), json!(args.use_case.label()));
