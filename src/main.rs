@@ -20,6 +20,15 @@ enum UseCase {
     File,
 }
 
+impl UseCase {
+    fn label(self) -> &'static str {
+        match self {
+            UseCase::Account => "account",
+            UseCase::File => "file",
+        }
+    }
+}
+
 impl FromStr for UseCase {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -27,6 +36,69 @@ impl FromStr for UseCase {
             "account" => Ok(UseCase::Account),
             "file" => Ok(UseCase::File),
             _ => Err(format!("unknown use case: '{s}' (expected 'account' or 'file')")),
+        }
+    }
+}
+
+/// How much guessing power the caller wants the strength verdict (level/description, and
+/// hence the safe/unsafe gate) judged against. Also used, per-scenario, to label each
+/// crack-time report entry - see ThreatLevel::from_rate.
+///
+/// Declared in ascending order so the derived Ord matches real attacker capability: this is
+/// relied on by primary_scenario's "pick the strongest scenario at or below the requested
+/// level" selection.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ThreatLevel {
+    Casual,
+    Motivated,
+    Determined,
+    StateLevel,
+}
+
+impl ThreatLevel {
+    /// Classifies a guess rate into a threat level, via one shared threshold table used for
+    /// every crack-time scenario regardless of use case, so e.g. 1024 cores of scrypt (1024
+    /// guesses/sec) and a 10B/sec fast-hash attack aren't both called "state-level" despite
+    /// differing by seven orders of magnitude. Thresholds are guesses/second < 1 / 1-100 /
+    /// 100-100k / >= 100k, expressed here in guesses/hour (x3600) to keep every comparison
+    /// integer-only.
+    fn from_rate(guesses_per_hour: u64) -> Self {
+        if guesses_per_hour < 3_600 {
+            ThreatLevel::Casual
+        } else if guesses_per_hour < 360_000 {
+            ThreatLevel::Motivated
+        } else if guesses_per_hour < 360_000_000 {
+            ThreatLevel::Determined
+        } else {
+            ThreatLevel::StateLevel
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            ThreatLevel::Casual => "casual",
+            ThreatLevel::Motivated => "motivated",
+            ThreatLevel::Determined => "determined",
+            ThreatLevel::StateLevel => "state-level",
+        }
+    }
+
+    fn actor(self) -> String {
+        format!("for {} attacker", self.label())
+    }
+}
+
+impl FromStr for ThreatLevel {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "casual" => Ok(ThreatLevel::Casual),
+            "motivated" => Ok(ThreatLevel::Motivated),
+            "determined" => Ok(ThreatLevel::Determined),
+            "state-level" => Ok(ThreatLevel::StateLevel),
+            _ => Err(format!(
+                "unknown threat level: '{s}' (expected 'casual', 'motivated', 'determined', or 'state-level')"
+            )),
         }
     }
 }
@@ -41,6 +113,11 @@ struct Args {
     /// default scrypt work factor) (default: account)
     #[argh(option, long = "use-case", short = 'u', default = "UseCase::Account")]
     use_case: UseCase,
+
+    /// how much guessing power to judge the strength verdict against: 'casual', 'motivated',
+    /// 'determined', or 'state-level' (default: determined)
+    #[argh(option, long = "threat-level", short = 'l', default = "ThreatLevel::Determined")]
+    threat_level: ThreatLevel,
 
     /// split output on multiple lines
     #[argh(switch, long = "multi-line", short = 'm')]
@@ -172,13 +249,22 @@ fn scenarios_for(use_case: UseCase) -> &'static [Scenario] {
 }
 
 /// The scenario driving the summary level/description and default crack-time display: the
-/// same one used for this purpose before use cases had multiple scenarios each (account's
-/// generic offline-slow-hashing rate; file's single-core scrypt rate).
-fn primary_scenario(use_case: UseCase) -> &'static Scenario {
-    match use_case {
-        UseCase::Account => &ACCOUNT_SCENARIOS[2], // 10k_per_second
-        UseCase::File => &FILE_SCENARIOS[0],       // age_scrypt_1_core
+/// strongest scenario in this use case's list whose own rate-derived threat level is at or
+/// below the one requested, so "determined" means the same real guessing power for both use
+/// cases (account's 10k_per_second; file's 1024-core scrypt) rather than an arbitrary,
+/// separately-chosen scenario per use case. Scenarios are ordered weakest-to-strongest, so
+/// this is exactly "keep walking forward while still within budget". Falls back to the
+/// weakest scenario if even that already exceeds the requested level (e.g. 'casual' requested
+/// for file, whose weakest tier - a single core - already rate-classifies as 'motivated').
+fn primary_scenario(use_case: UseCase, threat_level: ThreatLevel) -> &'static Scenario {
+    let scenarios = scenarios_for(use_case);
+    let mut chosen = &scenarios[0];
+    for scenario in scenarios {
+        if ThreatLevel::from_rate(scenario.guesses_per_hour) <= threat_level {
+            chosen = scenario;
+        }
     }
+    chosen
 }
 
 fn seconds_for(guesses: u64, guesses_per_hour: u64) -> u64 {
@@ -190,8 +276,8 @@ fn seconds_for(guesses: u64, guesses_per_hour: u64) -> u64 {
     seconds.min(u64::MAX as u128) as u64
 }
 
-fn primary_seconds(use_case: UseCase, guesses: u64) -> u64 {
-    seconds_for(guesses, primary_scenario(use_case).guesses_per_hour)
+fn primary_seconds(use_case: UseCase, threat_level: ThreatLevel, guesses: u64) -> u64 {
+    seconds_for(guesses, primary_scenario(use_case, threat_level).guesses_per_hour)
 }
 
 /// Formats a duration in seconds as a human-readable crack time. Matches zxcvbn's own
@@ -241,23 +327,6 @@ fn format_crack_time(seconds: u64) -> String {
     }
 }
 
-/// Maps a guess rate to an attacker-type label, via one shared threshold table used for every
-/// crack-time scenario regardless of use case, so e.g. 1024 cores of scrypt (1024 guesses/sec)
-/// and a 10B/sec fast-hash attack aren't both called "state-level attacker" despite differing
-/// by seven orders of magnitude. Thresholds are guesses/second < 1 / 1-100 / 100-100k / >=
-/// 100k, expressed here in guesses/hour (x3600) to keep every comparison integer-only.
-fn attacker_type_for_rate(guesses_per_hour: u64) -> &'static str {
-    if guesses_per_hour < 3_600 {
-        "casual attacker"
-    } else if guesses_per_hour < 360_000 {
-        "motivated attacker"
-    } else if guesses_per_hour < 360_000_000 {
-        "determined attacker"
-    } else {
-        "state-level attacker"
-    }
-}
-
 #[derive(Serialize)]
 struct ReportEntry {
     time: String,
@@ -266,31 +335,31 @@ struct ReportEntry {
 }
 
 /// Builds the use-case-aware crack-time report: one entry per scenario, with consecutive
-/// scenarios that would share the same attacker-type label collapsed into a single entry (the
+/// scenarios that would share the same threat level collapsed into a single entry (the
 /// higher-rate/worse-case one) so e.g. file's four core-count tiers - two of which land in the
-/// same attacker-type bucket under attacker_type_for_rate's thresholds - don't repeat the same
+/// same threat-level bucket under ThreatLevel::from_rate's thresholds - don't repeat the same
 /// story twice. Scenarios with an actor_override are never collapsed: each already tells a
 /// distinct, hash-choice-driven story regardless of rate.
 fn build_report(guesses: u64, scenarios: &[Scenario]) -> Vec<ReportEntry> {
     let mut entries: Vec<ReportEntry> = Vec::new();
-    let mut last_type: Option<&'static str> = None;
+    let mut last_level: Option<ThreatLevel> = None;
 
     for scenario in scenarios {
         let time = format_crack_time(seconds_for(guesses, scenario.guesses_per_hour));
 
         if let Some(actor) = scenario.actor_override {
             entries.push(ReportEntry { time, actor: actor.to_string(), detail: scenario.detail });
-            last_type = None;
+            last_level = None;
             continue;
         }
 
-        let attacker_type = attacker_type_for_rate(scenario.guesses_per_hour);
-        let actor = format!("for {attacker_type}");
-        if last_type == Some(attacker_type) {
+        let threat_level = ThreatLevel::from_rate(scenario.guesses_per_hour);
+        let actor = threat_level.actor();
+        if last_level == Some(threat_level) {
             *entries.last_mut().unwrap() = ReportEntry { time, actor, detail: scenario.detail };
         } else {
             entries.push(ReportEntry { time, actor, detail: scenario.detail });
-            last_type = Some(attacker_type);
+            last_level = Some(threat_level);
         }
     }
 
@@ -312,14 +381,19 @@ fn print_verbose(args: Args, estimate: Entropy) {
     *json.get_mut("crack_times").unwrap() = serde_json::Value::Object(crack_times);
 
     // Add the same crack-time-based level/description used in the default summary output
-    // (based on -u/--use-case), so callers parsing --verbose don't have to duplicate
-    // describe()'s thresholds themselves, plus the use-case-aware, collapsed report - see
-    // build_report - which is what callers actually want to render per-scenario detail from.
+    // (based on -u/--use-case and -l/--threat-level), so callers parsing --verbose don't have
+    // to duplicate describe()'s thresholds themselves, plus the use-case-aware, collapsed
+    // report - see build_report - which is what callers actually want to render per-scenario
+    // detail from. use_case/threat_level are echoed back too since they determine what the
+    // verdict actually means (e.g. "good" against a casual attacker is a different claim than
+    // "good" against a state-level one).
 
-    let (level, description, _color) = describe(primary_seconds(args.use_case, guesses));
+    let (level, description, _color) = describe(primary_seconds(args.use_case, args.threat_level, guesses));
     let report = build_report(guesses, scenarios_for(args.use_case));
 
     let obj = json.as_object_mut().unwrap();
+    obj.insert("use_case".to_string(), json!(args.use_case.label()));
+    obj.insert("threat_level".to_string(), json!(args.threat_level.label()));
     obj.insert("level".to_string(), json!(level));
     obj.insert("description".to_string(), json!(description));
     obj.insert("report".to_string(), json!(report));
@@ -353,12 +427,14 @@ fn describe(seconds: u64) -> (u8, &'static str, Style) {
 
 fn print_summary(args: Args, estimate: Entropy) {
     let guesses = estimate.guesses();
-    let seconds = primary_seconds(args.use_case, guesses);
+    let scenario = primary_scenario(args.use_case, args.threat_level);
+    let seconds = seconds_for(guesses, scenario.guesses_per_hour);
     let crack_time = format_crack_time(seconds);
     let (level, name, color) = describe(seconds);
-    let attacker_type = attacker_type_for_rate(primary_scenario(args.use_case).guesses_per_hour);
-    let mut description = format!(" to crack ({attacker_type})");
+    let applied = ThreatLevel::from_rate(scenario.guesses_per_hour).label();
+    let mut description = format!(" to crack ({applied} attacker)");
     let mut tally = format!("({level}/4)");
+    let mut prefix = format!("{}/{}: ", args.use_case.label(), args.threat_level.label());
     let adjective;
 
     if args.plain {
@@ -371,17 +447,19 @@ fn print_summary(args: Args, estimate: Entropy) {
         if args.terse {
             tally = format!("\n{level}\n");
             description = String::new();
+            prefix = String::new();
         } else {
             tally = format!("\n{tally}\n");
         }
     } else if args.terse {
         tally = format!(",{level},");
         description = String::new();
+        prefix = String::new();
     } else {
         tally = format!(" {tally}, ");
     }
 
-    println!("{adjective}{tally}{crack_time}{description}");
+    println!("{prefix}{adjective}{tally}{crack_time}{description}");
 }
 
 fn version() -> Result<(), String> {

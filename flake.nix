@@ -15,9 +15,9 @@
         packages = {
           default = pkgs.rustPlatform.buildRustPackage {
             pname = "mrld";
-            version = "0.1.7";
+            version = "0.1.8";
             src = self;
-            cargoHash = "sha256-3jRlsMAR+7XS3naDbfPQob1TFtS2UfoPMWeBNlCxLsw=";
+            cargoHash = "sha256-PuO3x5XJXu5g47Fm76AsJ0x1Km7yKKMpKaG7LpGL9hA=";
             meta = with pkgs.lib; {
               description = "Password strength evaluator";
               homepage = "https://github.com/phoggy/mrld";
