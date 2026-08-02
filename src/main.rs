@@ -52,13 +52,13 @@ enum ThreatLevel {
     Casual,
     Motivated,
     Determined,
-    StateLevel,
+    NationState,
 }
 
 impl ThreatLevel {
     /// Classifies a guess rate into a threat level, via one shared threshold table used for
     /// every crack-time scenario regardless of use case, so e.g. 1024 cores of scrypt (1024
-    /// guesses/sec) and a 10B/sec fast-hash attack aren't both called "state-level" despite
+    /// guesses/sec) and a 10B/sec fast-hash attack aren't both called "nation-state" despite
     /// differing by seven orders of magnitude. Thresholds are guesses/second < 1 / 1-100 /
     /// 100-100k / >= 100k, expressed here in guesses/hour (x3600) to keep every comparison
     /// integer-only.
@@ -70,7 +70,7 @@ impl ThreatLevel {
         } else if guesses_per_hour < 360_000_000 {
             ThreatLevel::Determined
         } else {
-            ThreatLevel::StateLevel
+            ThreatLevel::NationState
         }
     }
 
@@ -79,7 +79,7 @@ impl ThreatLevel {
             ThreatLevel::Casual => "casual",
             ThreatLevel::Motivated => "motivated",
             ThreatLevel::Determined => "determined",
-            ThreatLevel::StateLevel => "state-level",
+            ThreatLevel::NationState => "nation-state",
         }
     }
 
@@ -95,9 +95,9 @@ impl FromStr for ThreatLevel {
             "casual" => Ok(ThreatLevel::Casual),
             "motivated" => Ok(ThreatLevel::Motivated),
             "determined" => Ok(ThreatLevel::Determined),
-            "state-level" => Ok(ThreatLevel::StateLevel),
+            "nation-state" => Ok(ThreatLevel::NationState),
             _ => Err(format!(
-                "unknown threat level: '{s}' (expected 'casual', 'motivated', 'determined', or 'state-level')"
+                "unknown threat level: '{s}' (expected 'casual', 'motivated', 'determined', or 'nation-state')"
             )),
         }
     }
@@ -115,7 +115,7 @@ struct Args {
     use_case: UseCase,
 
     /// how much guessing power to judge the strength verdict against: 'casual', 'motivated',
-    /// 'determined', or 'state-level' (default: determined)
+    /// 'determined', or 'nation-state' (default: determined)
     #[argh(option, long = "threat-level", short = 'l', default = "ThreatLevel::Determined")]
     threat_level: ThreatLevel,
 
@@ -172,7 +172,7 @@ fn print(args: Args, estimate: Entropy) {
 /// `actor_override`, when present, replaces the normal guesses/hour-derived attacker-type
 /// label. It exists for account's offline pair: both scenarios need roughly the same (modest)
 /// hardware, so what actually distinguishes them isn't attacker sophistication but the
-/// account's own hash choice — labeling the fast-hash row "state-level attacker" would wrongly
+/// account's own hash choice — labeling the fast-hash row "nation-state attacker" would wrongly
 /// imply a bigger, more capable adversary is required, when really any ordinary attacker gets
 /// the same outcome once the account is breached.
 struct Scenario {
@@ -407,7 +407,7 @@ fn print_verbose(args: Args, estimate: Entropy) {
     // report - see build_report - which is what callers actually want to render per-scenario
     // detail from. use_case/threat_level are echoed back too since they determine what the
     // verdict actually means (e.g. "good" against a casual attacker is a different claim than
-    // "good" against a state-level one).
+    // "good" against a nation-state one).
 
     let primary = primary_scenario(args.use_case, args.threat_level);
     let (level, description, _color) = describe(seconds_for(guesses, primary.guesses_per_hour));
