@@ -239,6 +239,15 @@ const FILE_SCENARIOS: &[Scenario] = &[
         detail: "offline attack, scrypt hash, 1024 cores",
         actor_override: None,
     },
+    // 100,000 cores needs ~25.6TB of RAM in flight at once (100,000 * 256MB/guess) - a real
+    // cost, but not an implausible one for a nation-state-scale cluster. Lands right at the
+    // professional/nation-state boundary (100,000 * 3600 = 360,000,000/hr).
+    Scenario {
+        key: "age_scrypt_100000_cores",
+        guesses_per_hour: 360_000_000,
+        detail: "offline attack, scrypt hash, 100,000-core cluster",
+        actor_override: None,
+    },
 ];
 
 fn scenarios_for(use_case: UseCase) -> &'static [Scenario] {
