@@ -132,6 +132,20 @@ substitutions, dates, keyboard walks, repeats, sequences) rather than raw charac
 makes it a meaningfully better estimator than naive entropy calculations - it approximates how real cracking
 tools actually search, not a uniform-random upper bound.
 
+**mrld's displayed score is not zxcvbn's own score, and the two will disagree.** `zxcvbn` (and tools built
+directly on it, like the [zxcvbn-ts demo](https://zxcvbn-ts.github.io/zxcvbn/demo/)) report a 0-4 score derived
+from `guesses_log10` alone - fixed buckets regardless of who's attacking or how fast. mrld exposes that same
+value too (the `score` field in `--verbose` output, for reference), but the `level`/`description` it actually
+reports - what drives the "very weak"/"weak"/"good"/"strong" adjective - is a different, deliberately redesigned
+metric: crack time under the one specific scenario `--use-case`/`--threat-level` selected, bucketed by real-world
+duration (`<1 day`, `<90 days`, `<10 years`, else). The two frequently diverge. For example, `bob barker17`
+judged as `account`/`casual` has `guesses_log10 ≈ 8.98` - zxcvbn's own score is 3 ("good"), matching what the
+zxcvbn-ts demo shows - but at a *casual* attacker's rate (100 guesses/hour, throttled online), those ~961 million
+guesses take over 1,000 years, which crosses mrld's own `>10 years` threshold: `level` 4 ("strong"). Both tools
+agree on how guessable the password is; they disagree on what to do with that number, because mrld deliberately
+answers a narrower, more concrete question - how long would *this* attacker actually take - rather than reporting
+a generic, scenario-agnostic bucket.
+
 **`account`'s four base rates** - 100/hour (throttled online), 10/second (unthrottled online), 10,000/second
 (offline, slow hash), and 10,000,000,000/second (offline, fast hash) - are `zxcvbn`'s own built-in reference
 rates for these scenarios, not values mrld invented.
