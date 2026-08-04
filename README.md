@@ -162,7 +162,31 @@ rates for these scenarios, not values mrld invented.
   grouping rates into a comparable vocabulary across both use cases - useful for relative comparison, not drawn
   from a published standard.
 
-## Prerequisites
+## Installation
+
+**With Homebrew:**
+
+```bash
+brew install phoggy/mrld/mrld
+```
+
+**With Nix:**
+
+```bash
+nix profile add github:phoggy/mrld
+```
+
+To run without installing:
+
+```bash
+nix run github:phoggy/mrld
+```
+
+Or check this project's GitHub Releases page for prebuilt binaries.
+
+### Prerequisites for Nix
+
+Only needed for the Nix install path above; skip this if you're using Homebrew or a prebuilt binary.
 
 Requires [Nix](https://nixos.org/).
 
@@ -190,20 +214,6 @@ If you used the Mac x86 installer, enable flakes:
 mkdir -p ~/.config/nix
 echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
 ```
-
-## Installation
-
-```bash
-nix profile add github:phoggy/mrld
-```
-
-To run without installing:
-
-```bash
-nix run github:phoggy/mrld
-```
-
-Or check this project's GitHub Releases page for binaries.
 
 ## Developers
 
