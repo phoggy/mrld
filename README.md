@@ -138,7 +138,10 @@ from `guesses_log10` alone - fixed buckets regardless of who's attacking or how 
 value too (the `score` field in `--verbose` output, for reference), but the `level`/`description` it actually
 reports - what drives the "very weak"/"weak"/"good"/"strong" adjective - is a different, deliberately redesigned
 metric: crack time under the one specific scenario `--use-case`/`--threat-level` selected, bucketed by real-world
-duration (`<1 day`, `<90 days`, `<10 years`, else). The two frequently diverge. For example, `bob barker17`
+duration (`<1 day`, `<90 days`, `<10 years`, else). When that scenario is a breached account's offline crack,
+which depends on whether the service hashes passwords slowly or quickly (unknown to us), the verdict assumes the
+faster of the two, erring on the safe side: a password cracked in minutes once a fast-hashing service is breached
+is not called strong just because a slow-hashing one would hold out for years. The two frequently diverge. For example, `bob barker17`
 judged as `account`/`casual` has `guesses_log10 ≈ 8.98` - zxcvbn's own score is 3 ("good"), matching what the
 zxcvbn-ts demo shows - but at a *casual* attacker's rate (100 guesses/hour, throttled online), those ~961 million
 guesses take over 1,000 years, which crosses mrld's own `>10 years` threshold: `level` 4 ("strong"). Both tools

@@ -276,6 +276,25 @@ fn primary_scenario(use_case: UseCase, threat_level: ThreatLevel) -> &'static Sc
     chosen
 }
 
+/// The crack time the verdict (level/description) is judged on: primary_scenario's, or, when that
+/// scenario depends on the account's own (unknown to us) hash choice, the fastest of all such
+/// scenarios - the same entries build_report marks primary. Since we can't know whether a service
+/// hashes slowly or quickly, the verdict assumes the worse, erring on the safe side: a password
+/// cracked in minutes once a fast-hashing service is breached is not called strong just because
+/// a slow-hashing one would hold out for years.
+fn rating_seconds(guesses: u64, use_case: UseCase, threat_level: ThreatLevel) -> u64 {
+    let primary = primary_scenario(use_case, threat_level);
+    if primary.actor_override.is_none() {
+        return seconds_for(guesses, primary.guesses_per_hour);
+    }
+    scenarios_for(use_case)
+        .iter()
+        .filter(|scenario| scenario.actor_override.is_some())
+        .map(|scenario| seconds_for(guesses, scenario.guesses_per_hour))
+        .min()
+        .expect("the primary scenario is itself an override scenario")
+}
+
 fn seconds_for(guesses: u64, guesses_per_hour: u64) -> u64 {
     // u128 to avoid overflow (guesses can approach u64::MAX; *3600 would not fit back in u64),
     // then saturate back into u64 - format_crack_time's largest threshold is far below u64::MAX
@@ -399,7 +418,7 @@ fn print_verbose(args: Args, estimate: Entropy) {
     // "good" against a nation-state one).
 
     let primary = primary_scenario(args.use_case, args.threat_level);
-    let (level, description, _color) = describe(seconds_for(guesses, primary.guesses_per_hour));
+    let (level, description, _color) = describe(rating_seconds(guesses, args.use_case, args.threat_level));
     let report = build_report(guesses, scenarios_for(args.use_case), primary.key);
 
     let obj = json.as_object_mut().unwrap();
@@ -438,8 +457,7 @@ fn describe(seconds: u64) -> (u8, &'static str, Style) {
 
 fn print_summary(args: Args, estimate: Entropy) {
     let guesses = estimate.guesses();
-    let scenario = primary_scenario(args.use_case, args.threat_level);
-    let seconds = seconds_for(guesses, scenario.guesses_per_hour);
+    let seconds = rating_seconds(guesses, args.use_case, args.threat_level);
     let crack_time = format_crack_time(seconds);
     let (level, name, color) = describe(seconds);
     let adjective = if args.plain { name.to_string() } else { color.paint(name).to_string() };
@@ -467,4 +485,32 @@ fn print_summary(args: Args, estimate: Entropy) {
 fn version() -> Result<(), String> {
     println!("{NAME} {VERSION}");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // 10^13 guesses: about 31 years at the slow-hash rate, but about 17 minutes at the fast one
+
+    const GUESSES: u64 = 10_000_000_000_000;
+
+    #[test]
+    fn account_verdict_assumes_the_faster_hash_once_hash_choice_matters() {
+        let seconds = rating_seconds(GUESSES, UseCase::Account, ThreatLevel::Professional);
+        assert_eq!(seconds, seconds_for(GUESSES, 36_000_000_000_000));
+        assert_eq!(describe(seconds).0, 1, "minutes to crack must be very weak");
+    }
+
+    #[test]
+    fn online_account_verdict_is_unchanged() {
+        let seconds = rating_seconds(GUESSES, UseCase::Account, ThreatLevel::Casual);
+        assert_eq!(seconds, seconds_for(GUESSES, 100));
+    }
+
+    #[test]
+    fn file_verdict_uses_the_primary_scenario() {
+        let seconds = rating_seconds(GUESSES, UseCase::File, ThreatLevel::Professional);
+        assert_eq!(seconds, seconds_for(GUESSES, 3_686_400));
+    }
 }
