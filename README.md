@@ -170,7 +170,7 @@ rates for these scenarios, not values mrld invented.
 **With Homebrew:**
 
 ```bash
-brew install phoggy/mrld/mrld
+brew install rayvn-central/tap/mrld
 ```
 
 **With Nix:**
